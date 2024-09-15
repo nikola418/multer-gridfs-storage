@@ -10,6 +10,7 @@ import {
 	Db,
 	GridFSBucket,
 	GridFSBucketWriteStream,
+	GridFSBucketWriteStreamOptions,
 	MongoClient,
 	MongoClientOptions,
 	ObjectId,
@@ -298,16 +299,14 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 	 * @param {object} options - The stream options
 	 */
 	protected createStream(options): GridFSBucketWriteStream {
-		const settings = {
+		const settings: GridFSBucketWriteStreamOptions = {
 			id: options.id,
 			chunkSizeBytes: options.chunkSize,
-			contentType: options.contentType,
 			metadata: options.metadata,
 			aliases: options.aliases,
-			disableMD5: options.disableMD5,
 		};
 		const gfs = new GridFSBucket(this.db, { bucketName: options.bucketName });
-		return gfs.openUploadStream(options.filename, settings);
+		return gfs.openUploadStream(options.filename);
 	}
 
 	private async fromMulterStream(
@@ -337,9 +336,9 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 			settings = fileSettings;
 		}
 
-		const contentType = file ? file.mimetype : undefined;
+		const metadata = { mimetype: file.mimetype };
 		const streamOptions = await GridFsStorage._mergeProps(
-			{ contentType },
+			{ metadata },
 			settings
 		);
 		return new Promise((resolve, reject) => {
@@ -358,7 +357,7 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 					size: f.length,
 					md5: f.md5,
 					uploadDate: f.uploadDate,
-					contentType: f.contentType,
+					contentType: f.metadata.mimetype,
 				};
 				this.emit("file", storedFile);
 				resolve(storedFile);
