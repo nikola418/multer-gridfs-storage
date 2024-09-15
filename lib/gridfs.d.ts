@@ -1,10 +1,10 @@
 /// <reference types="node" />
 /// <reference types="node" />
-import { EventEmitter } from 'node:events';
-import { Db, GridFSBucketWriteStream, MongoClient, MongoClientOptions } from 'mongodb';
-import { StorageEngine } from 'multer';
-import { Cache } from './cache';
-import { GridFile, ConnectionResult, NodeCallback, UrlStorageOptions, DbStorageOptions } from './types';
+import { EventEmitter } from "node:events";
+import { Db, GridFSBucketWriteStream, MongoClient, MongoClientOptions } from "mongodb";
+import { StorageEngine } from "multer";
+import { Cache } from "./cache";
+import { GridFile, ConnectionResult, NodeCallback, UrlStorageOptions, DbStorageOptions } from "./types";
 /**
  * Multer GridFS Storage Engine class definition.
  * @extends EventEmitter

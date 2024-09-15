@@ -4,8 +4,8 @@
  * @module multer-gridfs-storage/gridfs
  *
  */
-import crypto from 'node:crypto';
-import {EventEmitter} from 'node:events';
+import crypto from "node:crypto";
+import { EventEmitter } from "node:events";
 import {
 	Db,
 	GridFSBucket,
@@ -13,15 +13,15 @@ import {
 	MongoClient,
 	MongoClientOptions,
 	ObjectId,
-} from 'mongodb';
-import isPromise from 'is-promise';
-import isGenerator from 'is-generator';
-import pump from 'pump';
-import {StorageEngine} from 'multer';
-import mongoUri from 'mongodb-uri';
+} from "mongodb";
+import isPromise from "is-promise";
+import isGenerator from "is-generator";
+import pump from "pump";
+import { StorageEngine } from "multer";
+import mongoUri from "mongodb-uri";
 
-import {getDatabase, shouldListenOnDb} from './utils';
-import {Cache} from './cache';
+import { getDatabase, shouldListenOnDb } from "./utils";
+import { Cache } from "./cache";
 import {
 	CacheIndex,
 	GridFile,
@@ -29,7 +29,7 @@ import {
 	NodeCallback,
 	UrlStorageOptions,
 	DbStorageOptions,
-} from './types';
+} from "./types";
 
 const isGeneratorFn: any = isGenerator.fn;
 
@@ -40,7 +40,7 @@ const isGeneratorFn: any = isGenerator.fn;
 const defaults: any = {
 	metadata: null,
 	chunkSize: 261_120,
-	bucketName: 'fs',
+	bucketName: "fs",
 	aliases: null,
 };
 
@@ -84,14 +84,14 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 				!(configuration as DbStorageOptions).db)
 		) {
 			throw new Error(
-				'Error creating storage engine. At least one of url or db option must be provided.',
+				"Error creating storage engine. At least one of url or db option must be provided."
 			);
 		}
 
 		this.setMaxListeners(0);
 		this.configuration = configuration;
 		this._file = this.configuration.file;
-		const {url, cache, options}: UrlStorageOptions = this
+		const { url, cache, options }: UrlStorageOptions = this
 			.configuration as UrlStorageOptions;
 		if (url) {
 			this.caching = Boolean(cache);
@@ -99,8 +99,8 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 		}
 
 		if (this.caching) {
-			const {cache, url} = configuration as UrlStorageOptions;
-			const cacheName = typeof cache === 'string' ? cache : 'default';
+			const { cache, url } = configuration as UrlStorageOptions;
+			const cacheName = typeof cache === "string" ? cache : "default";
 			this.cacheName = cacheName;
 			this.cacheIndex = GridFsStorage.cache.initialize({
 				url,
@@ -115,7 +115,7 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 	/**
 	 * Generates 16 bytes long strings in hexadecimal format
 	 */
-	static async generateBytes(): Promise<{filename: string}> {
+	static async generateBytes(): Promise<{ filename: string }> {
 		return new Promise((resolve, reject) => {
 			crypto.randomBytes(16, (error, buffer) => {
 				if (error) {
@@ -123,7 +123,7 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 					return;
 				}
 
-				resolve({filename: buffer.toString('hex')});
+				resolve({ filename: buffer.toString("hex") });
 			});
 		});
 	}
@@ -146,7 +146,7 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 			previous.id = new ObjectId();
 		}
 
-		return {...previous, ...defaults, ...extra, ...fileSettings};
+		return { ...previous, ...defaults, ...extra, ...fileSettings };
 	}
 
 	/**
@@ -156,13 +156,13 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 	 **/
 	private static async _handleResult(
 		result: any,
-		isGen: boolean,
+		isGen: boolean
 	): Promise<any> {
 		let value = result;
 
 		if (isGen) {
 			if (result.done) {
-				throw new Error('Generator ended unexpectedly');
+				throw new Error("Generator ended unexpectedly");
 			}
 
 			value = result.value;
@@ -201,7 +201,7 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 			return;
 		}
 
-		cb(new Error('The database connection must be open to store files'));
+		cb(new Error("The database connection must be open to store files"));
 	}
 
 	/**
@@ -211,9 +211,9 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 	 * @param cb - A standard node callback to signal the end of the upload or an error
 	 **/
 	_removeFile(request: any, file, cb: NodeCallback): void {
-		const options = {bucketName: file.bucketName};
+		const options = { bucketName: file.bucketName };
 		const bucket = new GridFSBucket(this.db, options);
-		bucket.delete(file.id, cb);
+		bucket.delete(file.id).catch((err) => cb(err));
 	}
 
 	/**
@@ -225,22 +225,22 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 		}
 
 		if (this.connected) {
-			return {db: this.db, client: this.client};
+			return { db: this.db, client: this.client };
 		}
 
 		return new Promise((resolve, reject) => {
 			const done = (result) => {
-				this.removeListener('connectionFailed', fail);
+				this.removeListener("connectionFailed", fail);
 				resolve(result);
 			};
 
 			const fail = (error) => {
-				this.removeListener('connection', done);
+				this.removeListener("connection", done);
 				reject(error);
 			};
 
-			this.once('connection', done);
-			this.once('connectionFailed', fail);
+			this.once("connection", done);
+			this.once("connectionFailed", fail);
 		});
 	}
 
@@ -264,10 +264,10 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 	async fromStream(
 		readStream: NodeJS.ReadableStream,
 		request: any,
-		file: any,
+		file: any
 	): Promise<GridFile> {
 		return new Promise<GridFile>((resolve, reject) => {
-			readStream.on('error', reject);
+			readStream.on("error", reject);
 			this.fromMulterStream(readStream, request, file)
 				/* eslint-disable-next-line promise/prefer-await-to-then */
 				.then(resolve)
@@ -277,7 +277,7 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 
 	protected async _openConnection(
 		url: string,
-		options: MongoClientOptions,
+		options: MongoClientOptions
 	): Promise<ConnectionResult> {
 		let client = null;
 		let db;
@@ -290,7 +290,7 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 			db = connection;
 		}
 
-		return {client, db};
+		return { client, db };
 	}
 
 	/**
@@ -306,14 +306,14 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 			aliases: options.aliases,
 			disableMD5: options.disableMD5,
 		};
-		const gfs = new GridFSBucket(this.db, {bucketName: options.bucketName});
+		const gfs = new GridFSBucket(this.db, { bucketName: options.bucketName });
 		return gfs.openUploadStream(options.filename, settings);
 	}
 
 	private async fromMulterStream(
 		readStream: NodeJS.ReadableStream,
 		request: any,
-		file: any,
+		file: any
 	): Promise<GridFile> {
 		if (this.connecting) {
 			await this.ready();
@@ -322,14 +322,14 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 		const fileSettings = await this._generate(request, file);
 		let settings;
 		const setType = typeof fileSettings;
-		const allowedTypes = new Set(['undefined', 'number', 'string', 'object']);
+		const allowedTypes = new Set(["undefined", "number", "string", "object"]);
 		if (!allowedTypes.has(setType)) {
-			throw new Error('Invalid type for file settings, got ' + setType);
+			throw new Error("Invalid type for file settings, got " + setType);
 		}
 
 		if (fileSettings === null || fileSettings === undefined) {
 			settings = {};
-		} else if (setType === 'string' || setType === 'number') {
+		} else if (setType === "string" || setType === "number") {
 			settings = {
 				filename: fileSettings.toString(),
 			};
@@ -339,12 +339,12 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 
 		const contentType = file ? file.mimetype : undefined;
 		const streamOptions = await GridFsStorage._mergeProps(
-			{contentType},
-			settings,
+			{ contentType },
+			settings
 		);
 		return new Promise((resolve, reject) => {
 			const emitError = (streamError) => {
-				this.emit('streamError', streamError, streamOptions);
+				this.emit("streamError", streamError, streamOptions);
 				reject(streamError);
 			};
 
@@ -360,7 +360,7 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 					uploadDate: f.uploadDate,
 					contentType: f.contentType,
 				};
-				this.emit('file', storedFile);
+				this.emit("file", storedFile);
 				resolve(storedFile);
 			};
 
@@ -368,8 +368,8 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 
 			// Multer already handles the error event on the readable stream(Busboy).
 			// Invoking the callback with an error will cause file removal and aborting routines to be called twice
-			writeStream.on('error', emitError);
-			writeStream.on('finish', emitFile);
+			writeStream.on("error", emitError);
+			writeStream.on("finish", emitFile);
 			pump([readStream, writeStream]);
 		});
 	}
@@ -378,7 +378,7 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 	 * Determines if a new connection should be created, a explicit connection is provided or a cached instance is required.
 	 */
 	private _connect() {
-		const {db, client = null} = this.configuration as DbStorageOptions<Db>;
+		const { db, client = null } = this.configuration as DbStorageOptions<Db>;
 
 		if (db && !isPromise(db) && !isPromise(client)) {
 			this._setDb(db, client);
@@ -387,7 +387,7 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 
 		this._resolveConnection()
 			/* eslint-disable-next-line promise/prefer-await-to-then */
-			.then(({db, client}) => {
+			.then(({ db, client }) => {
 				this._setDb(db, client);
 			})
 			.catch((error) => {
@@ -400,17 +400,17 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 	 */
 	private async _resolveConnection(): Promise<ConnectionResult> {
 		this.connecting = true;
-		const {db, client = null} = this.configuration as DbStorageOptions<Db>;
+		const { db, client = null } = this.configuration as DbStorageOptions<Db>;
 		if (db) {
 			const [_db, _client] = await Promise.all([db, client]);
-			return {db: _db, client: _client};
+			return { db: _db, client: _client };
 		}
 
 		if (!this.caching) {
 			return this._createConnection();
 		}
 
-		const {cache} = GridFsStorage;
+		const { cache } = GridFsStorage;
 		if (!cache.isOpening(this.cacheIndex) && cache.isPending(this.cacheIndex)) {
 			const cached = cache.get(this.cacheIndex);
 			cached.opening = true;
@@ -424,17 +424,17 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 	 * Handles creating a new connection from an url and storing it in the cache if necessary*}>}
 	 */
 	private async _createConnection(): Promise<ConnectionResult> {
-		const {url} = this.configuration as UrlStorageOptions;
+		const { url } = this.configuration as UrlStorageOptions;
 		const options: MongoClientOptions = this._options;
 
-		const {cache} = GridFsStorage;
+		const { cache } = GridFsStorage;
 		try {
-			const {db, client} = await this._openConnection(url, options);
+			const { db, client } = await this._openConnection(url, options);
 			if (this.caching) {
 				cache.resolve(this.cacheIndex, db, client);
 			}
 
-			return {db, client};
+			return { db, client };
 		} catch (error: unknown) {
 			if (this.cacheIndex) {
 				cache.reject(this.cacheIndex, error);
@@ -455,14 +455,11 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 		}
 
 		if (this.client) {
-			this.connected = this.client.isConnected
-				? this.client.isConnected()
-				: true;
+			this.connected = this.db.command({ ping: 1 }) ? true : false;
 			return;
 		}
 
-		// @ts-expect-error
-		this.connected = this.db?.topology?.isConnected() || true;
+		this.connected = this.db.command({ ping: 1 }) ? true : false;
 	}
 
 	/**
@@ -482,12 +479,12 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 			// Needs verification. Sometimes the event fires without an error object
 			// although the docs specify each of the events has a MongoError argument
 			this._updateConnectionStatus();
-			const error = error_ || new Error('Unknown database error');
-			this.emit('dbError', error);
+			const error = error_ || new Error("Unknown database error");
+			this.emit("dbError", error);
 		};
 
 		// This are all the events that emit errors
-		const errorEventNames = ['error', 'parseError', 'timeout', 'close'];
+		const errorEventNames = ["error", "parseError", "timeout", "close"];
 		let eventSource;
 		if (shouldListenOnDb()) {
 			eventSource = this.db;
@@ -503,7 +500,7 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 
 		// Emit on next tick so user code can set listeners in case the db object is already available
 		process.nextTick(() => {
-			this.emit('connection', {db: this.db, client: this.client});
+			this.emit("connection", { db: this.db, client: this.client });
 		});
 	}
 
@@ -518,7 +515,7 @@ export class GridFsStorage extends EventEmitter implements StorageEngine {
 		this.error = error;
 		this._updateConnectionStatus();
 		// Fail event is only emitted after either a then promise handler or an I/O phase so is guaranteed to be asynchronous
-		this.emit('connectionFailed', error);
+		this.emit("connectionFailed", error);
 	}
 
 	/**
